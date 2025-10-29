@@ -1,11 +1,12 @@
 from typing import Annotated
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path
 from starlette import status
 from models import Applications
-from database import SessionLocal
+from database import get_db, db_dependency
 from datetime import datetime
+from app_status import ApplicationStatus
+
 
 router = APIRouter(
     prefix='/applications',
@@ -20,21 +21,12 @@ class ApplicationReq(BaseModel):
     loan_type: str = Field(..., example="PERSONAL")
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-db_dependency = Annotated[Session, Depends(get_db)]
-
 @router.post('/', status_code=status.HTTP_201_CREATED)
 def create_application(application: ApplicationReq, db: db_dependency):
-    application = Applications(**application.dict(), pending= enum.PENDING,created_at=datetime.utcnow(), updated_at=datetime.utcnow())
+    application = Applications(**application.dict(), status= ApplicationStatus.PENDING.value,created_at=datetime.utcnow(), updated_at=datetime.utcnow())
     db.add(application)
     db.commit()
+    return {"message": "Application created successfully", "application_id": application.id, "status": application.status}
 
 
 @router.get('/{application_id}/status',status_code=status.HTTP_200_OK)
