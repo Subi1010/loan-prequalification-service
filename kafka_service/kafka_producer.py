@@ -47,6 +47,8 @@ def send_application_to_kafka(application_id, application_data):
             value=application_data
         )
 
+# TO-DO : make it Asynchronous and add the retry for sending messages.
+
         # Block until message is sent (or timeout after 5 seconds)
         record_metadata = future.get(timeout=5)
 

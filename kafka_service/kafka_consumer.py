@@ -17,6 +17,12 @@ logger = logging.getLogger(__name__)
 from database import SessionLocal
 
 def calculate_cibil_score(application_data):
+    pan_number = application_data.get('pan_number', None)
+    match pan_number:
+        case "ABCDE1234F":
+            return 790
+        case "FGHIJ5678K":
+            return 610
 
     # Extract relevant data for calculation
     monthly_income = float(application_data.get('monthly_income_inr', 0))

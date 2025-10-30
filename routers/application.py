@@ -28,7 +28,7 @@ class ApplicationReq(BaseModel):
     loan_type: str = Field(..., examples=["PERSONAL"])
 
 
-@router.post('/', status_code=status.HTTP_201_CREATED)
+@router.post('/', status_code=status.HTTP_202_ACCEPTED)
 def create_application(application: ApplicationReq, db: db_dependency):
 
     # Create application in database
