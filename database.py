@@ -3,8 +3,13 @@ from sqlalchemy.orm import sessionmaker, Session
 from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.declarative import declarative_base
+import os
 
-SQLALCHEMY_DATABASE_URL = 'postgresql://postgres:test1234@localhost:5432/LoanAppDatabase'
+# Use DATABASE_URL from environment if available, otherwise use local database
+SQLALCHEMY_DATABASE_URL = os.getenv(
+    'DATABASE_URL',
+    'postgresql://postgres:test1234@localhost:5432/LoanAppDatabase'
+)
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
