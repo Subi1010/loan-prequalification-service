@@ -30,7 +30,7 @@ def create_application(application: ApplicationReq, db: db_dependency):
 
 
 @router.get('/{application_id}/status',status_code=status.HTTP_200_OK)
-def get_application(application_id: Annotated[int, Path(gt=0)], db: db_dependency):
+def get_application(application_id: str, db: db_dependency):
     application = db.query(Applications).filter(Applications.id == application_id).first()
     if not application:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
