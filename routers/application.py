@@ -1,38 +1,43 @@
-from datetime import datetime, timezone
+import logging
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from starlette import status
 
 from app_status import ApplicationStatus
+from database import db_dependency
 from kafka_service.kafka_producer import send_application_to_kafka
-import logging
+from models import Applications
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-from database import db_dependency
-from models import Applications
 
-router = APIRouter(
-    prefix='/applications',
-    tags=['application']
-)
+router = APIRouter(prefix="/applications", tags=["application"])
 
 
 class ApplicationReq(BaseModel):
-    pan_number: str = Field(min_length=10, examples=["ABCDE1234F"],message="PAN number is required and must be 10 characters long")
+    pan_number: str = Field(
+        min_length=10,
+        examples=["ABCDE1234F"],
+        message="PAN number is required and must be 10 characters long",
+    )
     applicant_name: str = Field(..., examples=["John Doe"])
     monthly_income_inr: float = Field(..., examples=[50000.00])
     loan_amount_inr: float = Field(..., examples=[200000.00])
     loan_type: str = Field(..., examples=["PERSONAL"])
 
 
-@router.post('/', status_code=status.HTTP_202_ACCEPTED)
+@router.post("/", status_code=status.HTTP_202_ACCEPTED)
 def create_application(application: ApplicationReq, db: db_dependency):
-
     # Create application in database
-    db_application = Applications(**application.model_dump(), status=ApplicationStatus.PENDING.value, created_at=datetime.now(timezone.utc), updated_at=datetime.now(timezone.utc))
+    db_application = Applications(
+        **application.model_dump(),
+        status=ApplicationStatus.PENDING.value,
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
     db.add(db_application)
     db.commit()
 
@@ -46,7 +51,7 @@ def create_application(application: ApplicationReq, db: db_dependency):
         "loan_type": db_application.loan_type,
         "status": db_application.status,
         "created_at": db_application.created_at.isoformat(),
-        "updated_at": db_application.updated_at.isoformat()
+        "updated_at": db_application.updated_at.isoformat(),
     }
 
     # Send application data to Kafka
@@ -57,13 +62,17 @@ def create_application(application: ApplicationReq, db: db_dependency):
     return {
         "message": "Application created successfully",
         "application_id": db_application.id,
-        "status": db_application.status
+        "status": db_application.status,
     }
 
 
-@router.get('/{application_id}/status', status_code=status.HTTP_200_OK)
+@router.get("/{application_id}/status", status_code=status.HTTP_200_OK)
 def get_application(application_id: str, db: db_dependency):
-    application = db.query(Applications).filter(Applications.id == application_id).first()
+    application = (
+        db.query(Applications).filter(Applications.id == application_id).first()
+    )
     if not application:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Application not found"
+        )
     return {"application_id": application.id, "status": application.status}

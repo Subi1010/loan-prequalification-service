@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class ApplicationStatus(Enum):
     PENDING = "pending"
     PRE_APPROVED = "pre_approved"
