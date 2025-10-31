@@ -5,11 +5,8 @@ import uuid
 from datetime import datetime, timezone
 from src.database import SessionLocal
 from src.models import Applications
-
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import src.core.logging_config as log
+from src.core.app_status import ApplicationStatus
 
 def decision_maker(application_id, cibil_score, application_data):
 
@@ -29,7 +26,7 @@ def decision_maker(application_id, cibil_score, application_data):
         application = db.query(Applications).filter(Applications.id == application_id).first()
 
         if not application:
-            logger.error(f"Application with ID {application_id} not found")
+            log.logger.error(f"Application with ID {application_id} not found")
             return False
 
         # Update CIBIL score
@@ -38,20 +35,20 @@ def decision_maker(application_id, cibil_score, application_data):
 
         # Determine new status based on CIBIL score
         if cibil_score <650:
-            application.status = 'rejected'
+            application.status = ApplicationStatus.REJECTED.value
         elif cibil_score >= 650 and monthly_income_inr > ( loan_amount_inr / 48):
-            application.status = 'pre_approved'
+            application.status = ApplicationStatus.PRE_APPROVED.value
         elif cibil_score >= 650 and monthly_income_inr <= ( loan_amount_inr / 48):
-            application.status = 'manual_review'
+            application.status = ApplicationStatus.MANUAL_REVIEW.value
 
         application.updated_at = datetime.now(timezone.utc)
 
         db.commit()
-        logger.info(f"Updated CIBIL score for application {application_id} to {cibil_score}")
+        log.logger.info(f"Updated CIBIL score for application {application_id} to {cibil_score}")
         return True
 
     except Exception as e:
-        logger.error(f"Error updating CIBIL score for application {application_id}: {e}")
+        log.logger.error(f"Error updating CIBIL score for application {application_id}: {e}")
         return False
 
     finally:
@@ -68,15 +65,15 @@ def handle_cibil_score_event(message):
         application_data = cibil_data.get('application_data')
 
         if not application_id or cibil_score is None:
-            logger.error("Message does not contain application ID or CIBIL score")
+            log.logger.error("Message does not contain application ID or CIBIL score")
             return False
 
-        logger.info(f"Processing CIBIL score for application {application_id}: {cibil_score}")
+        log.logger.info(f"Processing CIBIL score for application {application_id}: {cibil_score}")
 
         # Update application in database
         update_result = decision_maker(application_id, cibil_score,application_data)
         return update_result
 
     except Exception as e:
-        logger.error(f"Error processing CIBIL score message: {e}")
+        log.logger.error(f"Error processing CIBIL score message: {e}")
         return False

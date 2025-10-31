@@ -3,11 +3,8 @@ import logging
 import random
 import src.core.config as config
 from src.kafka.kafka_producer import send_data_to_kafka
+import src.core.logging_config as log
 
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 def calculate_cibil_score(application_data):
     pan_number = application_data.get('pan_number', None)
@@ -43,7 +40,7 @@ def calculate_cibil_score(application_data):
     # Ensure score is within valid range
     final_score = max(300, min(900, score))
 
-    logger.info(f"CIBIL score calculation: base=650, income_adj={'+40' if monthly_income > 75000 else '-20' if monthly_income < 30000 else '0'}, "
+    log.log.logger.info(f"CIBIL score calculation: base=650, income_adj={'+40' if monthly_income > 75000 else '-20' if monthly_income < 30000 else '0'}, "
               f"loan_type_adj={'-10' if loan_type == 'PERSONAL' else '+10' if loan_type == 'HOME' else '0'}, "
               f"random={random_factor}, final={final_score}")
 
@@ -57,19 +54,19 @@ def handle_application_event(message):
         application_id = application_data.get('id')
 
         if not application_id:
-            logger.error("Message does not contain application ID")
+            log.log.logger.error("Message does not contain application ID")
             return False
 
-        logger.info(f"Processing application {application_id}")
+        log.logger.info(f"Processing application {application_id}")
 
         # Calculate CIBIL score
         cibil_score = calculate_cibil_score(application_data)
-        logger.info(f"Calculated CIBIL score for application {application_id}: {cibil_score}")
+        log.logger.info(f"Calculated CIBIL score for application {application_id}: {cibil_score}")
 
         send_data_to_kafka(application_id, {"application_id":application_id,"cibil_score": cibil_score,"application_data":application_data}, config.LOAN_APPLICATIONS_TOPIC[1])
 
         return True
 
     except Exception as e:
-        logger.error(f"Error processing message: {e}")
+        log.logger.error(f"Error processing message: {e}")
         return False

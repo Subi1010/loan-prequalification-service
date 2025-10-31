@@ -5,18 +5,15 @@ import random
 import threading
 import src.core.config as config
 from src.services.app_processor import TOPIC_HANDLERS
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import src.core.logging_config as log
 
 def start_consumer():
 
     if not config.KAFKA_ENABLED:
-        logger.info("Kafka is disabled. Consumer not started.")
+        log.logger.info("Kafka is disabled. Consumer not started.")
         return
 
-    logger.info(f"Starting Kafka consumer for topic {config.LOAN_APPLICATIONS_TOPIC}")
+    log.logger.info(f"Starting Kafka consumer for topic {config.LOAN_APPLICATIONS_TOPIC}")
 
     try:
         # Create consumer
@@ -29,21 +26,21 @@ def start_consumer():
             auto_commit_interval_ms=5000,
         )
 
-        logger.info(f"Kafka consumer initialized successfully. Listening for messages on topic {config.LOAN_APPLICATIONS_TOPIC}")
+        log.logger.info(f"Kafka consumer initialized successfully. Listening for messages on topic {config.LOAN_APPLICATIONS_TOPIC}")
 
         # Process messages
         for message in consumer:
-            logger.info(f"Received message from partition {message.partition}, offset {message.offset}")
+            log.logger.info(f"Received message from partition {message.partition}, offset {message.offset}")
             handler = TOPIC_HANDLERS.get(message.topic)
             if handler:
                 handler(message)
             else:
-                logger.warning(f"No handler defined for topic {message.topic}. Message skipped.")
+                log.logger.warning(f"No handler defined for topic {message.topic}. Message skipped.")
 
     except NoBrokersAvailable:
-        logger.error(f"No Kafka brokers available at {config.KAFKA_BOOTSTRAP_SERVERS}")
+        log.logger.error(f"No Kafka brokers available at {config.KAFKA_BOOTSTRAP_SERVERS}")
     except Exception as e:
-        logger.error(f"Error in Kafka consumer: {e}")
+        log.logger.error(f"Error in Kafka consumer: {e}")
 
 
 def start_consumer_thread():
@@ -53,7 +50,7 @@ def start_consumer_thread():
     consumer_thread = threading.Thread(target=start_consumer)
     consumer_thread.daemon = True  # Thread will exit when main thread exits
     consumer_thread.start()
-    logger.info("Kafka consumer thread started")
+    log.logger.info("Kafka consumer thread started")
     return consumer_thread
 
 

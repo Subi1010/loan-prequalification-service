@@ -10,10 +10,11 @@ from src.core.app_status import ApplicationStatus
 from src.database import db_dependency
 from src.kafka.kafka_producer import send_data_to_kafka
 from src.models import Applications
+import src.core.logging_config as log
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+log.logger = logging.getlog.logger(__name__)
 
 router = APIRouter(prefix="/applications", tags=["application"])
 
@@ -58,7 +59,7 @@ def create_application(application: ApplicationReq, db: db_dependency):
     # Send application data to Kafka
     kafka_result = send_data_to_kafka(str(db_application.id), application_data, config.LOAN_APPLICATIONS_TOPIC[0])
     if not kafka_result:
-        logger.warning(f"Failed to send application {db_application.id} to Kafka")
+        log.logger.warning(f"Failed to send application {db_application.id} to Kafka")
 
     return {
         "message": "Application created successfully",
