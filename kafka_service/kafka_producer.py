@@ -1,33 +1,31 @@
 import json
 import logging
-
+import os
+import config as config
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
-
-import kafka_service.kafka_utils as kafka_utils
+import config as config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-logger.info(
-    f"Kafka configuration: bootstrap_servers={kafka_utils.KAFKA_BOOTSTRAP_SERVERS}, topic={kafka_utils.LOAN_APPLICATIONS_TOPIC}, enabled={kafka_utils.KAFKA_ENABLED}"
-)
+logger.info(f"Kafka configuration: bootstrap_servers={config.KAFKA_BOOTSTRAP_SERVERS}, topic={config.LOAN_APPLICATIONS_TOPIC}, enabled={config.KAFKA_ENABLED}")
 
 # Initialize Kafka producer
 producer = None
-if kafka_utils.KAFKA_ENABLED:
+if config.KAFKA_ENABLED:
     try:
         producer = KafkaProducer(
-            bootstrap_servers=kafka_utils.KAFKA_BOOTSTRAP_SERVERS,
+            bootstrap_servers=config.KAFKA_BOOTSTRAP_SERVERS,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
             key_serializer=lambda k: str(k).encode("utf-8") if k else None,
         )
         logger.info("Kafka producer initialized successfully")
     except NoBrokersAvailable:
         logger.warning(
-            f"No Kafka brokers available at {kafka_utils.KAFKA_BOOTSTRAP_SERVERS}. Messages will not be sent to Kafka."
+            f"No Kafka brokers available at {config.KAFKA_BOOTSTRAP_SERVERS}. Messages will not be sent to Kafka."
         )
     except Exception as e:
         logger.error(f"Failed to initialize Kafka producer: {e}")
@@ -35,8 +33,8 @@ else:
     logger.info("Kafka is disabled. Messages will not be sent to Kafka.")
 
 
-def send_application_to_kafka(application_id, application_data):
-    if not kafka_utils.KAFKA_ENABLED:
+def send_data_to_kafka(application_id, application_data,topic):
+    if not config.KAFKA_ENABLED:
         logger.info(
             f"Kafka is disabled. Application {application_id} not sent to Kafka."
         )
@@ -50,7 +48,7 @@ def send_application_to_kafka(application_id, application_data):
 
     try:
         future = producer.send(
-            kafka_utils.LOAN_APPLICATIONS_TOPIC,
+            topic,
             key=application_id,
             value=application_data,
         )
@@ -61,7 +59,7 @@ def send_application_to_kafka(application_id, application_data):
         record_metadata = future.get(timeout=5)
 
         logger.info(
-            f"Application sent to Kafka topic '{kafka_utils.LOAN_APPLICATIONS_TOPIC}' "
+            f"Application sent to Kafka topic '{topic}' "
             f"[partition: {record_metadata.partition}, offset: {record_metadata.offset}]"
         )
         return True

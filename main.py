@@ -6,6 +6,10 @@ import kafka_service.kafka_consumer as kafka_consumer  # Import for CIBIL score 
 import models
 from database import engine
 from routers import application
+import kafka_service.kafka_producer as kafka_producer
+import kafka_service.kafka_consumer as kafka_consumer
+import logging
+import kafka_service.kafka_topics as kafka_topics
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

@@ -4,10 +4,11 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from starlette import status
+import config as config
 
 from app_status import ApplicationStatus
 from database import db_dependency
-from kafka_service.kafka_producer import send_application_to_kafka
+from kafka_service.kafka_producer import send_data_to_kafka
 from models import Applications
 
 # Configure logging
@@ -55,7 +56,7 @@ def create_application(application: ApplicationReq, db: db_dependency):
     }
 
     # Send application data to Kafka
-    kafka_result = send_application_to_kafka(str(db_application.id), application_data)
+    kafka_result = send_data_to_kafka(str(db_application.id), application_data, config.LOAN_APPLICATIONS_TOPIC[0])
     if not kafka_result:
         logger.warning(f"Failed to send application {db_application.id} to Kafka")
 
