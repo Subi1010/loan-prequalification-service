@@ -8,15 +8,19 @@ from src.api import application
 from src.core.logging_config import logger
 from src.database import engine
 from src.kafka.kafka_producer import MessageProducer
+from src.kafka.kafka_consumer import MessageConsumer
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Starting up...")
+
     models.Base.metadata.create_all(bind=engine)
+
     MessageProducer.initialize_producer()
+
     logger.info("Starting Kafka consumer thread")
-    kafka_consumer.start_consumer_thread()
+    MessageConsumer.initialize_consumer_thread()
 
     yield
 
