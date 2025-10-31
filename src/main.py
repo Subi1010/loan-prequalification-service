@@ -1,32 +1,27 @@
-import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-import src.kafka.kafka_consumer as kafka_consumer  # Import for CIBIL score calculation consumer
-import src.models as models
-from src.database import engine
-from src.api import application
-import src.kafka.kafka_producer as kafka_producer
 import src.kafka.kafka_consumer as kafka_consumer
-import logging
-import src.kafka.kafka_topics as kafka_topics
-import src.core.logging_config as log
-
-app = FastAPI()
-
-models.Base.metadata.create_all(bind=engine)
-
-app.include_router(application.router)
+import src.models as models
+from src.api import application
+from src.core.logging_config import logger
+from src.database import engine
+from src.kafka.kafka_producer import MessageProducer
 
 
-# Start Kafka consumer in a separate thread
-@app.on_event("startup")
-async def startup_event():
-    log.logger.info("Starting Kafka consumer thread")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Starting up...")
+    models.Base.metadata.create_all(bind=engine)
+    MessageProducer.initialize_producer()
+    logger.info("Starting Kafka consumer thread")
     kafka_consumer.start_consumer_thread()
-    log.logger.info("Application startup complete")
+
+    yield
+
+    print("Shutting down...")
 
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    log.logger.info("Application shutting down")
+app = FastAPI(lifespan=lifespan)
+app.include_router(application.router)

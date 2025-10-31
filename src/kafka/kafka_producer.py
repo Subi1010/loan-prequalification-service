@@ -1,64 +1,65 @@
 import json
-import logging
-import os
-import src.core.config as config
+
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
-import src.core.config as config
-import src.core.logging_config as log
-
-log.logger.info(f"Kafka configuration: bootstrap_servers={config.KAFKA_BOOTSTRAP_SERVERS}, topic={config.LOAN_APPLICATIONS_TOPIC}, enabled={config.KAFKA_ENABLED}")
-
-# Initialize Kafka producer
-producer = None
-if config.KAFKA_ENABLED:
-    try:
-        producer = KafkaProducer(
-            bootstrap_servers=config.KAFKA_BOOTSTRAP_SERVERS,
-            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-            key_serializer=lambda k: str(k).encode("utf-8") if k else None,
-        )
-        log.logger.info("Kafka producer initialized successfully")
-    except NoBrokersAvailable:
-        log.logger.warning(
-            f"No Kafka brokers available at {config.KAFKA_BOOTSTRAP_SERVERS}. Messages will not be sent to Kafka."
-        )
-    except Exception as e:
-        log.logger.error(f"Failed to initialize Kafka producer: {e}")
-else:
-    log.logger.info("Kafka is disabled. Messages will not be sent to Kafka.")
+from src.core.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_ENABLED
+from src.core.logging_config import logger
 
 
-def send_data_to_kafka(application_id, application_data,topic):
-    if not config.KAFKA_ENABLED:
-        log.logger.info(
-            f"Kafka is disabled. Application {application_id} not sent to Kafka."
-        )
-        return False
+class MessageProducer:
+    producer = None
 
-    if producer is None:
-        log.logger.warning(
-            f"Kafka producer not initialized. Application {application_id} not sent to Kafka."
-        )
-        return False
-
-    try:
-        future = producer.send(
-            topic,
-            key=application_id,
-            value=application_data,
+    @staticmethod
+    def initialize_producer():
+        logger.info(
+            f"Kafka configuration: bootstrap_servers={KAFKA_BOOTSTRAP_SERVERS}, enabled={KAFKA_ENABLED}"
         )
 
-        # TO-DO : make it Asynchronous and add the retry for sending messages.
+        if KAFKA_ENABLED:
+            try:
+                MessageProducer.producer = KafkaProducer(
+                    bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+                    value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+                    key_serializer=lambda k: str(k).encode("utf-8") if k else None,
+                )
+                logger.info("Kafka producer initialized successfully")
+            except NoBrokersAvailable:
+                logger.warning(
+                    f"No Kafka brokers available at {KAFKA_BOOTSTRAP_SERVERS}. Messages will not be sent to Kafka."
+                )
+            except Exception as e:
+                logger.error(f"Failed to initialize Kafka producer: {e}")
+        else:
+            logger.info("Kafka is disabled. Messages will not be sent to Kafka.")
 
-        # Block until message is sent (or timeout after 5 seconds)
-        record_metadata = future.get(timeout=5)
+    @staticmethod
+    def produce_message(topic, key, value):
+        if not KAFKA_ENABLED:
+            logger.info(f"Kafka is disabled. Application {key} not sent to Kafka.")
+            return False
 
-        log.logger.info(
-            f"Application sent to Kafka topic '{topic}' "
-            f"[partition: {record_metadata.partition}, offset: {record_metadata.offset}]"
-        )
-        return True
-    except Exception as e:
-        log.logger.error(f"Failed to send application to Kafka: {e}")
-        return False
+        if MessageProducer.producer is None:
+            logger.warning(
+                f"Kafka producer not initialized. Application {key} not sent to Kafka."
+            )
+            return False
+
+        try:
+            future = MessageProducer.producer.send(
+                topic,
+                key=key,
+                value=value,
+            )
+            # TO-DO : make it Asynchronous and add the retry for sending messages.
+
+            # Block until message is sent (or timeout after 5 seconds)
+            record_metadata = future.get(timeout=5)
+
+            logger.info(
+                f"Message sent to Kafka topic '{topic}' "
+                f"[partition: {record_metadata.partition}, offset: {record_metadata.offset}]"
+            )
+            return True
+        except Exception as e:
+            logger.error(f"Failed to send application to Kafka: {e}")
+            return False

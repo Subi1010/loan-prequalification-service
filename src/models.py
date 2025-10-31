@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from sqlalchemy import DECIMAL, Column, DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -19,5 +19,5 @@ class Applications(Base):
     loan_type = Column(String)
     status = Column(String, default=ApplicationStatus.PENDING.value)
     cibil_score = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC))
+    updated_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC))

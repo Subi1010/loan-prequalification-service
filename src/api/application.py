@@ -6,10 +6,10 @@ from pydantic import BaseModel, Field
 from starlette import status
 
 import src.core.config as config
-import src.core.logging_config as log
 from src.core.app_status import ApplicationStatus
+from src.core.logging_config import logger
 from src.database import db_dependency
-from src.kafka.kafka_producer import send_data_to_kafka
+from src.kafka.kafka_producer import MessageProducer
 from src.models import Applications
 
 router = APIRouter(prefix="/applications", tags=["application"])
@@ -52,11 +52,11 @@ def create_application(application: ApplicationReq, db: db_dependency):
     }
 
     # Send application data to Kafka
-    kafka_result = send_data_to_kafka(
-        str(db_application.id), application_data, config.LOAN_APPLICATIONS_TOPIC[0]
+    kafka_result = MessageProducer.produce_message(
+        config.LOAN_APPLICATIONS_TOPIC[0], str(db_application.id), application_data
     )
     if not kafka_result:
-        log.logger.warning(f"Failed to send application {db_application.id} to Kafka")
+        logger.warning(f"Failed to send application {db_application.id} to Kafka")
 
     return {
         "message": "Application created successfully",

@@ -2,8 +2,8 @@ import json
 import random
 
 import src.core.config as config
-import src.core.logging_config as log
-from src.kafka.kafka_producer import send_data_to_kafka
+from src.core.logging_config import logger
+from src.kafka.kafka_producer import MessageProducer
 
 
 def calculate_cibil_score(application_data):
@@ -40,7 +40,7 @@ def calculate_cibil_score(application_data):
     # Ensure score is within valid range
     final_score = max(300, min(900, score))
 
-    log.log.logger.info(
+    logger.info(
         f"CIBIL score calculation: base=650, income_adj={'+40' if monthly_income > 75000 else '-20' if monthly_income < 30000 else '0'}, "
         f"loan_type_adj={'-10' if loan_type == 'PERSONAL' else '+10' if loan_type == 'HOME' else '0'}, "
         f"random={random_factor}, final={final_score}"
@@ -56,29 +56,29 @@ def handle_application_event(message):
         application_id = application_data.get("id")
 
         if not application_id:
-            log.log.logger.error("Message does not contain application ID")
+            logger.error("Message does not contain application ID")
             return False
 
-        log.logger.info(f"Processing application {application_id}")
+        logger.info(f"Processing application {application_id}")
 
         # Calculate CIBIL score
         cibil_score = calculate_cibil_score(application_data)
-        log.logger.info(
+        logger.info(
             f"Calculated CIBIL score for application {application_id}: {cibil_score}"
         )
 
-        send_data_to_kafka(
+        MessageProducer.produce_message(
+            config.LOAN_APPLICATIONS_TOPIC[1],
             application_id,
             {
                 "application_id": application_id,
                 "cibil_score": cibil_score,
                 "application_data": application_data,
             },
-            config.LOAN_APPLICATIONS_TOPIC[1],
         )
 
         return True
 
     except Exception as e:
-        log.logger.error(f"Error processing message: {e}")
+        logger.error(f"Error processing message: {e}")
         return False
