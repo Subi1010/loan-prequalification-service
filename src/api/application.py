@@ -1,20 +1,16 @@
-import logging
 from datetime import UTC, datetime
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from starlette import status
-import src.core.config as config
 
+import src.core.config as config
+import src.core.logging_config as log
 from src.core.app_status import ApplicationStatus
 from src.database import db_dependency
 from src.kafka.kafka_producer import send_data_to_kafka
 from src.models import Applications
-import src.core.logging_config as log
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-log.logger = logging.getlog.logger(__name__)
 
 router = APIRouter(prefix="/applications", tags=["application"])
 
@@ -23,7 +19,6 @@ class ApplicationReq(BaseModel):
     pan_number: str = Field(
         min_length=10,
         examples=["ABCDE1234F"],
-        message="PAN number is required and must be 10 characters long",
     )
     applicant_name: str = Field(..., examples=["John Doe"])
     monthly_income_inr: float = Field(..., examples=[50000.00])
@@ -57,7 +52,9 @@ def create_application(application: ApplicationReq, db: db_dependency):
     }
 
     # Send application data to Kafka
-    kafka_result = send_data_to_kafka(str(db_application.id), application_data, config.LOAN_APPLICATIONS_TOPIC[0])
+    kafka_result = send_data_to_kafka(
+        str(db_application.id), application_data, config.LOAN_APPLICATIONS_TOPIC[0]
+    )
     if not kafka_result:
         log.logger.warning(f"Failed to send application {db_application.id} to Kafka")
 
@@ -69,7 +66,7 @@ def create_application(application: ApplicationReq, db: db_dependency):
 
 
 @router.get("/{application_id}/status", status_code=status.HTTP_200_OK)
-def get_application(application_id: str, db: db_dependency):
+def get_application(application_id: UUID, db: db_dependency):
     application = (
         db.query(Applications).filter(Applications.id == application_id).first()
     )
