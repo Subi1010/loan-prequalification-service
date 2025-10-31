@@ -19,6 +19,7 @@ class ApplicationReq(BaseModel):
     pan_number: str = Field(
         min_length=10,
         examples=["ABCDE1234F"],
+        regex="^[A-Z]{5}[0-9]{4}[A-Z]$",
     )
     applicant_name: str = Field(..., examples=["John Doe"])
     monthly_income_inr: float = Field(..., examples=[50000.00])

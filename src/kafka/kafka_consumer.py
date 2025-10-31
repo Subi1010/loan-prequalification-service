@@ -6,7 +6,6 @@ from kafka.errors import NoBrokersAvailable
 from src.core.logging_config import logger
 from src.services.app_processor import TOPIC_HANDLERS
 
-
 def start_consumer():
     if not config.KAFKA_ENABLED:
         logger.info("Kafka is disabled. Consumer not started.")
@@ -25,9 +24,7 @@ def start_consumer():
             auto_commit_interval_ms=5000,
         )
 
-        logger.info(
-            f"Kafka consumer initialized successfully. Listening for messages on topic {config.LOAN_APPLICATIONS_TOPIC}"
-        )
+        logger.info(f"Kafka consumer initialized successfully. Listening for messages on topic {config.LOAN_APPLICATIONS_TOPIC}")
 
         # Process messages
         for message in consumer:
