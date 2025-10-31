@@ -3,7 +3,7 @@ import logging
 from kafka.admin import KafkaAdminClient, NewTopic
 from kafka.errors import NoBrokersAvailable, TopicAlreadyExistsError
 
-import config as config
+import src.core.config as config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

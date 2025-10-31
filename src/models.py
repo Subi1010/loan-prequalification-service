@@ -4,8 +4,8 @@ from datetime import datetime
 from sqlalchemy import DECIMAL, Column, DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 
-from app_status import ApplicationStatus
-from database import Base
+from src.core.app_status import ApplicationStatus
+from src.database import Base
 
 
 class Applications(Base):

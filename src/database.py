@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.ext.declarative import declarative_base
-import config as config
+import src.core.config as config
 
 engine = create_engine(config.SQLALCHEMY_DATABASE_URL)
 

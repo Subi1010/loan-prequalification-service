@@ -2,14 +2,14 @@ import logging
 
 from fastapi import FastAPI
 
-import kafka_service.kafka_consumer as kafka_consumer  # Import for CIBIL score calculation consumer
-import models
-from database import engine
-from routers import application
-import kafka_service.kafka_producer as kafka_producer
-import kafka_service.kafka_consumer as kafka_consumer
+import src.kafka.kafka_consumer as kafka_consumer  # Import for CIBIL score calculation consumer
+import src.models as models
+from src.database import engine
+from src.api import application
+import src.kafka.kafka_producer as kafka_producer
+import src.kafka.kafka_consumer as kafka_consumer
 import logging
-import kafka_service.kafka_topics as kafka_topics
+import src.kafka.kafka_topics as kafka_topics
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

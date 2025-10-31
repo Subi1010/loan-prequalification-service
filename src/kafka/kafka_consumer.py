@@ -3,8 +3,8 @@ from kafka.errors import NoBrokersAvailable
 import logging
 import random
 import threading
-import config as config
-from routers.app_processor import TOPIC_HANDLERS
+import src.core.config as config
+from src.services.app_processor import TOPIC_HANDLERS
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

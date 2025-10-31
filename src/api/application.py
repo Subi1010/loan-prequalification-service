@@ -4,12 +4,12 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from starlette import status
-import config as config
+import src.core.config as config
 
-from app_status import ApplicationStatus
-from database import db_dependency
-from kafka_service.kafka_producer import send_data_to_kafka
-from models import Applications
+from src.core.app_status import ApplicationStatus
+from src.database import db_dependency
+from src.kafka.kafka_producer import send_data_to_kafka
+from src.models import Applications
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

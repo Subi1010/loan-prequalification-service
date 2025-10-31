@@ -1,10 +1,10 @@
 import json
 import logging
 import os
-import config as config
+import src.core.config as config
 from kafka import KafkaProducer
 from kafka.errors import NoBrokersAvailable
-import config as config
+import src.core.config as config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
