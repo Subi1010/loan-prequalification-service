@@ -19,5 +19,7 @@ class Applications(Base):
     loan_type = Column(String)
     status = Column(String, default=ApplicationStatus.PENDING.value)
     cibil_score = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC))
-    updated_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC))
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(
+        DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
+    )
