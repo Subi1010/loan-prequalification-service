@@ -6,10 +6,9 @@ This directory contains tests for the Loan Prequalification Service application.
 
 - `conftest.py`: Contains pytest fixtures used across multiple test files
 - `api/`: Tests for API endpoints
-  - `test_application.py`: Tests for application endpoints in `src/api/application.py`
-- `core/`: Tests for core functionality (to be implemented)
-- `services/`: Tests for service modules (to be implemented)
-- `kafka/`: Tests for Kafka integration (to be implemented)
+  - `test_application.py`: Tests for application endpoints in `src/api/endpoints.py`
+- `services/`: Tests for service modules
+- `kafka/`: Tests for Kafka integration
 
 ## Running Tests
 
