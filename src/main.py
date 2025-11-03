@@ -10,12 +10,10 @@ import src.models as models
 from src.api import endpoints
 from src.core.config import settings
 from src.core.database import engine
-from src.core.logging_config import get_logger
+from src.core.logging_config import get_logger, setup_logging
 from src.kafka.kafka_consumer import MessageConsumer
 from src.kafka.kafka_producer import MessageProducer
 from src.kafka.kafka_topics import create_kafka_topic
-
-logger = get_logger(__name__)
 
 
 @asynccontextmanager
@@ -24,11 +22,15 @@ async def lifespan(app: FastAPI):
     Lifespan context manager for application startup and shutdown.
 
     Handles:
+    - Logging configuration
     - Database table creation
     - Kafka topic creation
     - Kafka producer initialization
     - Kafka consumer thread startup
     """
+    setup_logging()
+    logger = get_logger(__name__)
+
     logger.info("Application startup initiated")
 
     logger.info("Creating database tables")

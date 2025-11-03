@@ -36,12 +36,9 @@ class StructuredFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-def setup_logging() -> logging.Logger:
+def setup_logging() -> None:
     """
-    Configure and return the application logger.
-
-    Returns:
-        Configured logger instance
+    Configure the application logger.
     """
     # Get log level from settings
     log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
@@ -60,13 +57,6 @@ def setup_logging() -> logging.Logger:
 
     # Add handler to root logger
     root_logger.addHandler(console_handler)
-
-    # Return logger for this module
-    return logging.getLogger(__name__)
-
-
-# Initialize logger
-logger = setup_logging()
 
 
 def get_logger(name: str) -> logging.Logger:
