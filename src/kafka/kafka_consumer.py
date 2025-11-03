@@ -1,65 +1,118 @@
+"""
+Kafka consumer for processing messages from Kafka topics.
+"""
+
 import threading
 
 import src.core.config as config
 from kafka import KafkaConsumer
 from kafka.errors import NoBrokersAvailable
-from src.core.logging_config import logger
+from src.core.constants import KAFKA_AUTO_COMMIT_INTERVAL_MS
+from src.core.logging_config import get_logger
 from src.services.app_processor import TOPIC_HANDLERS
 
+
 class MessageConsumer:
+    """
+    Kafka message consumer using background thread processing.
 
-  @staticmethod
-  def initialize_consumer():
+    Listens to configured topics and dispatches messages to appropriate handlers.
+    """
 
-      if not config.KAFKA_ENABLED:
-          logger.info("Kafka is disabled. Consumer not started.")
-          return
+    logger = get_logger(__name__)
 
-      logger.info(f"Starting Kafka consumer for topic {config.LOAN_APPLICATIONS_TOPIC}")
+    @staticmethod
+    def initialize_consumer() -> None:
+        """
+        Initialize and run the Kafka consumer.
 
-      try:
-          # Create consumer
-          consumer = KafkaConsumer(
-              *config.LOAN_APPLICATIONS_TOPIC,
-              bootstrap_servers=config.KAFKA_BOOTSTRAP_SERVERS,
-              group_id=config.KAFKA_GROUP_ID,
-              auto_offset_reset="earliest",
-              enable_auto_commit=True,
-              auto_commit_interval_ms=5000,
-          )
+        Creates a KafkaConsumer instance and processes messages in an infinite loop.
+        Messages are dispatched to handlers based on topic name.
 
-          logger.info(f"Kafka consumer initialized successfully. Listening for messages on topic {config.LOAN_APPLICATIONS_TOPIC}")
+        This method blocks indefinitely and should be run in a separate thread.
+        """
+        if not config.KAFKA_ENABLED:
+            MessageConsumer.logger.info("Kafka is disabled. Consumer not started.")
+            return
 
-          # Process messages
-          for message in consumer:
-              logger.info(
-                  f"Received message from partition {message.partition}, offset {message.offset}"
-              )
-              handler = TOPIC_HANDLERS.get(message.topic)
-              if handler:
-                  handler(message)
-              else:
-                  logger.warning(
-                      f"No handler defined for topic {message.topic}. Message skipped."
-                  )
+        MessageConsumer.logger.info(
+            f"Starting Kafka consumer for topics {config.LOAN_APPLICATIONS_TOPIC}"
+        )
 
-      except NoBrokersAvailable:
-          logger.error(f"No Kafka brokers available at {config.KAFKA_BOOTSTRAP_SERVERS}")
-      except Exception as e:
-          logger.error(f"Error in Kafka consumer: {e}")
+        try:
+            # Create consumer
+            consumer = KafkaConsumer(
+                *config.LOAN_APPLICATIONS_TOPIC,
+                bootstrap_servers=config.KAFKA_BOOTSTRAP_SERVERS,
+                group_id=config.KAFKA_GROUP_ID,
+                auto_offset_reset="earliest",
+                enable_auto_commit=True,
+                auto_commit_interval_ms=KAFKA_AUTO_COMMIT_INTERVAL_MS,
+                # Add JSON deserialization at consumer level
+                value_deserializer=lambda m: m.decode("utf-8"),
+            )
 
-  @staticmethod
-  def initialize_consumer_thread():
-      """
-      Start the Kafka consumer in a separate thread
-      """
-      consumer_thread = threading.Thread(target=MessageConsumer.initialize_consumer)
-      consumer_thread.daemon = True  # Thread will exit when main thread exits
-      consumer_thread.start()
-      logger.info("Kafka consumer thread started")
-      return consumer_thread
+            MessageConsumer.logger.info(
+                f"Kafka consumer initialized successfully. "
+                f"Listening for messages on topics {config.LOAN_APPLICATIONS_TOPIC}"
+            )
+
+            # Process messages in infinite loop
+            for message in consumer:
+                MessageConsumer.logger.info(
+                    f"Received message from topic '{message.topic}', "
+                    f"partition {message.partition}, offset {message.offset}"
+                )
+
+                # Get handler for this topic
+                handler = TOPIC_HANDLERS.get(message.topic)
+
+                if handler:
+                    try:
+                        success = handler(message)
+                        if success:
+                            MessageConsumer.logger.debug(
+                                f"Successfully processed message from topic '{message.topic}'"
+                            )
+                        else:
+                            MessageConsumer.logger.warning(
+                                f"Handler returned False for message from topic '{message.topic}'"
+                            )
+                    except Exception as e:
+                        MessageConsumer.logger.error(
+                            f"Error in handler for topic '{message.topic}': {e}"
+                        )
+                else:
+                    MessageConsumer.logger.warning(
+                        f"No handler defined for topic '{message.topic}'. Message skipped."
+                    )
+
+        except NoBrokersAvailable:
+            MessageConsumer.logger.error(
+                f"No Kafka brokers available at {config.KAFKA_BOOTSTRAP_SERVERS}"
+            )
+        except Exception as e:
+            MessageConsumer.logger.error(f"Error in Kafka consumer: {e}")
+
+    @staticmethod
+    def initialize_consumer_thread() -> threading.Thread:
+        """
+        Start the Kafka consumer in a separate daemon thread.
+
+        The consumer thread will automatically exit when the main application exits.
+
+        Returns:
+            Thread object for the consumer thread
+        """
+        consumer_thread = threading.Thread(
+            target=MessageConsumer.initialize_consumer, name="KafkaConsumerThread"
+        )
+        consumer_thread.daemon = True  # Thread will exit when main thread exits
+        consumer_thread.start()
+        MessageConsumer.logger.info("Kafka consumer thread started")
+        return consumer_thread
 
 
 if __name__ == "__main__":
-  # This allows the script to be run directly for testing
-  MessageConsumer.initialize_consumer()
+    # This allows the script to be run directly for testing
+    MessageConsumer.initialize_consumer()

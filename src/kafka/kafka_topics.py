@@ -1,16 +1,22 @@
 import src.core.config as config
 from kafka.admin import KafkaAdminClient, NewTopic
 from kafka.errors import NoBrokersAvailable, TopicAlreadyExistsError
-from src.core.logging_config import logger
+from src.core.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 def create_kafka_topic():
-    # Create the Kafka topic for loan applications if it doesn't exist
+    """
+    Create Kafka topics for loan applications if they don't exist.
+
+    Returns:
+        bool: True if all topics were created or already exist, False otherwise
+    """
     if not config.KAFKA_ENABLED:
         logger.info("Kafka is disabled. Topic creation skipped.")
         return False
 
-    success = True
     admin_client = None
 
     try:
@@ -27,13 +33,11 @@ def create_kafka_topic():
                 )
 
                 admin_client.create_topics([topic_create])
-                logger.info(
-                    f"Topic '{config.LOAN_APPLICATIONS_TOPIC}' created successfully"
-                )
-                return True
+                logger.info(f"Topic '{topic}' created successfully")
             except TopicAlreadyExistsError:
                 logger.info(f"Topic '{topic}' already exists")
-                return True
+
+        return True
 
     except NoBrokersAvailable:
         logger.warning(
@@ -41,11 +45,8 @@ def create_kafka_topic():
         )
         return False
     except Exception as e:
-        logger.error(f"Failed to create topic '{config.LOAN_APPLICATIONS_TOPIC}': {e}")
+        logger.error(f"Failed to create topics: {e}")
         return False
     finally:
-        if "admin_client" in locals():
+        if admin_client is not None:
             admin_client.close()
-
-
-create_kafka_topic()

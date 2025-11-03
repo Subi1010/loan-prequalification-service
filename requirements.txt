@@ -12,6 +12,7 @@ pre-commit==4.0.1
 psycopg2-binary==2.9.11
 pydantic==2.12.3
 pydantic_core==2.41.4
+pydantic-settings==2.7.1
 python-dotenv==1.2.1
 PyYAML==6.0.3
 ruff==0.8.4

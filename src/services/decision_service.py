@@ -1,66 +1,123 @@
+"""
+Decision service for loan application approval logic.
+"""
+
 import json
 import uuid
-from datetime import UTC, datetime
+from uuid import UUID
 
 from src.core.app_status import ApplicationStatus
-from src.core.logging_config import logger
-from src.database import SessionLocal
-from src.models import Applications
+from src.core.constants import LOAN_TERM_MONTHS, MIN_CIBIL_SCORE_FOR_APPROVAL
+from src.core.database import SessionLocal
+from src.core.logging_config import get_logger
+from src.repositories.application_repository import ApplicationRepository
+
+logger = get_logger(__name__)
 
 
-def decision_maker(application_id, cibil_score, application_data):
-    try:
-        monthly_income_inr = float(application_data.get("monthly_income_inr", 0))
-        loan_amount_inr = float(application_data.get("loan_amount_inr", 0))
+class DecisionService:
+    """
+    Service for making loan application decisions based on CIBIL score and affordability.
 
+    Business Rules:
+    - CIBIL < 650: Rejected
+    - CIBIL >= 650 and EMI affordable (income > loan_amount/48): Pre-approved
+    - CIBIL >= 650 and EMI not affordable: Manual review
+    """
+
+    @staticmethod
+    def determine_status(
+        cibil_score: int, monthly_income: float, loan_amount: float
+    ) -> ApplicationStatus:
+        """
+        Determine application status based on CIBIL score and affordability.
+
+        Args:
+            cibil_score: Applicant's CIBIL score
+            monthly_income: Monthly income in INR
+            loan_amount: Requested loan amount in INR
+
+        Returns:
+            ApplicationStatus enum value
+        """
+        if cibil_score < MIN_CIBIL_SCORE_FOR_APPROVAL:
+            return ApplicationStatus.REJECTED
+
+        # Calculate if EMI is affordable (simple calculation)
+        affordable_monthly_payment = loan_amount / LOAN_TERM_MONTHS
+
+        if monthly_income > affordable_monthly_payment:
+            return ApplicationStatus.PRE_APPROVED
+        else:
+            return ApplicationStatus.MANUAL_REVIEW
+
+    @staticmethod
+    def process_decision(
+        application_id: UUID, cibil_score: int, application_data: dict
+    ) -> bool:
+        """
+        Process loan application decision and update database.
+
+        Args:
+            application_id: UUID of the application
+            cibil_score: Calculated CIBIL score
+            application_data: Dictionary containing application details
+
+        Returns:
+            True if successful, False otherwise
+        """
         db = SessionLocal()
+        try:
+            monthly_income_inr = float(application_data.get("monthly_income_inr", 0))
+            loan_amount_inr = float(application_data.get("loan_amount_inr", 0))
 
-        # Convert string UUID to UUID object if needed
-        if isinstance(application_id, str):
-            application_id = uuid.UUID(application_id)
+            # Convert string UUID to UUID object if needed
+            if isinstance(application_id, str):
+                application_id = uuid.UUID(application_id)
 
-        # Get the application
-        application = (
-            db.query(Applications).filter(Applications.id == application_id).first()
-        )
+            # Determine status based on business rules
+            status = DecisionService.determine_status(
+                cibil_score, monthly_income_inr, loan_amount_inr
+            )
 
-        if not application:
-            logger.error(f"Application with ID {application_id} not found")
+            # Update application in database
+            repository = ApplicationRepository(db)
+            application = repository.update_cibil_and_status(
+                application_id, cibil_score, status
+            )
+
+            if not application:
+                logger.error(f"Application with ID {application_id} not found")
+                return False
+
+            logger.info(
+                f"Updated application {application_id}: CIBIL={cibil_score}, Status={status.value}"
+            )
+            return True
+
+        except Exception as e:
+            logger.error(
+                f"Error processing decision for application {application_id}: {e}"
+            )
             return False
 
-        # Update CIBIL score
-        application.cibil_score = cibil_score
-
-        # Determine new status based on CIBIL score
-        if cibil_score < 650:
-            application.status = ApplicationStatus.REJECTED.value
-        elif cibil_score >= 650 and monthly_income_inr > (loan_amount_inr / 48):
-            application.status = ApplicationStatus.PRE_APPROVED.value
-        elif cibil_score >= 650 and monthly_income_inr <= (loan_amount_inr / 48):
-            application.status = ApplicationStatus.MANUAL_REVIEW.value
-
-        application.updated_at = datetime.now(UTC)
-
-        db.commit()
-        logger.info(
-            f"Updated CIBIL score for application {application_id} to {cibil_score}"
-        )
-        return True
-
-    except Exception as e:
-        logger.error(
-            f"Error updating CIBIL score for application {application_id}: {e}"
-        )
-        return False
-
-    finally:
-        db.close()
+        finally:
+            db.close()
 
 
-def handle_cibil_score_event(message):
+def handle_cibil_score_event(message) -> bool:
+    """
+    Handle Kafka message for CIBIL score calculation event.
+
+    Args:
+        message: Kafka message containing CIBIL score data
+
+    Returns:
+        True if processed successfully, False otherwise
+    """
     try:
         # Parse message value
-        cibil_data = json.loads(message.value.decode("utf-8"))
+        cibil_data = json.loads(message.value)
         application_id = cibil_data.get("application_id")
         cibil_score = cibil_data.get("cibil_score")
         application_data = cibil_data.get("application_data")
@@ -73,8 +130,10 @@ def handle_cibil_score_event(message):
             f"Processing CIBIL score for application {application_id}: {cibil_score}"
         )
 
-        # Update application in database
-        update_result = decision_maker(application_id, cibil_score, application_data)
+        # Process decision
+        update_result = DecisionService.process_decision(
+            application_id, cibil_score, application_data
+        )
         return update_result
 
     except Exception as e:

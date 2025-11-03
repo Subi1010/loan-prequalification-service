@@ -1,31 +1,64 @@
+"""
+Main FastAPI application entry point.
+"""
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-import src.kafka.kafka_consumer as kafka_consumer
 import src.models as models
-from src.api import application
-from src.core.logging_config import logger
-from src.database import engine
-from src.kafka.kafka_producer import MessageProducer
+from src.api import endpoints
+from src.core.config import settings
+from src.core.database import engine
+from src.core.logging_config import get_logger
 from src.kafka.kafka_consumer import MessageConsumer
+from src.kafka.kafka_producer import MessageProducer
+from src.kafka.kafka_topics import create_kafka_topic
+
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Starting up...")
+    """
+    Lifespan context manager for application startup and shutdown.
 
+    Handles:
+    - Database table creation
+    - Kafka topic creation
+    - Kafka producer initialization
+    - Kafka consumer thread startup
+    """
+    logger.info("Application startup initiated")
+
+    logger.info("Creating database tables")
     models.Base.metadata.create_all(bind=engine)
 
+    logger.info("Creating Kafka topics")
+    create_kafka_topic()
+
+    logger.info("Initializing Kafka producer")
     MessageProducer.initialize_producer()
 
     logger.info("Starting Kafka consumer thread")
     MessageConsumer.initialize_consumer_thread()
 
+    logger.info("Application startup completed")
+
     yield
 
-    print("Shutting down...")
+    logger.info("Application shutdown initiated")
+    MessageProducer.close_producer()
+    logger.info("Application shutdown completed")
 
 
-app = FastAPI(lifespan=lifespan)
-app.include_router(application.router)
+# Create FastAPI application
+app = FastAPI(
+    title=settings.app_name,
+    description="A loan prequalification service that processes applications asynchronously using Kafka",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# Include routers
+app.include_router(endpoints.router)

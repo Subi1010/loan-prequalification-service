@@ -1,3 +1,7 @@
+"""
+SQLAlchemy ORM model for loan applications.
+"""
+
 import uuid
 from datetime import UTC, datetime
 
@@ -5,7 +9,7 @@ from sqlalchemy import DECIMAL, Column, DateTime, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.core.app_status import ApplicationStatus
-from src.database import Base
+from src.core.database import Base
 
 
 class Applications(Base):
