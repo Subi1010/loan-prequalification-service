@@ -48,8 +48,8 @@ def client(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
 
-    # Create a test client using the FastAPI app
-    with TestClient(app) as test_client:
+    # Patch the engine in main.py to use our test engine and Create a test client using the FastAPI app
+    with patch("src.main.engine", engine), TestClient(app) as test_client:
         yield test_client
 
     # Reset the dependency override after the test

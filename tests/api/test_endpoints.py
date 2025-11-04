@@ -1,11 +1,11 @@
 import uuid
-from datetime import UTC, datetime
 from unittest.mock import patch
 
 from fastapi import status
 
 from src.core.app_status import ApplicationStatus
 from src.models.application import Applications
+from src.services.application_service import ApplicationService
 
 
 class TestApplicationEndpoints:
@@ -29,7 +29,13 @@ class TestApplicationEndpoints:
         assert response_data["status"] == ApplicationStatus.PENDING.value
         assert response_data["message"] == "Application created successfully"
 
-        # Verify database entry
+        # Verify database entry using service layer
+        """ service = ApplicationService(db_session)
+        application_status = service.get_application_status(
+            uuid.UUID(response_data["application_id"])
+        ) """
+
+        # Get the application from the database for detailed verification
         db_application = (
             db_session.query(Applications)
             .filter(Applications.id == uuid.UUID(response_data["application_id"]))
@@ -99,31 +105,39 @@ class TestApplicationEndpoints:
         response_data = response.json()
         assert "application_id" in response_data
 
-        # Verify database entry was still created
-        db_application = (
-            db_session.query(Applications)
-            .filter(Applications.id == uuid.UUID(response_data["application_id"]))
-            .first()
+        # Verify database entry was still created using service layer
+        service = ApplicationService(db_session)
+        application_status = service.get_application_status(
+            uuid.UUID(response_data["application_id"])
         )
 
-        assert db_application is not None
+        assert application_status is not None
+        assert application_status.application_id == uuid.UUID(
+            response_data["application_id"]
+        )
 
     def test_get_application_status_success(self, client, db_session):
         # Create a test application in the database
-        test_id = uuid.uuid4()
-        test_application = Applications(
-            id=test_id,
+        from src.schemas.application import ApplicationCreate
+
+        # Create application data
+        application_data = ApplicationCreate(
             pan_number="ABCDE1234F",
             applicant_name="John Doe",
             monthly_income_inr=50000.00,
             loan_amount_inr=200000.00,
             loan_type="PERSONAL",
-            status=ApplicationStatus.PENDING.value,
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
         )
-        db_session.add(test_application)
-        db_session.commit()
+
+        # Use service layer to create the application
+        service = ApplicationService(db_session)
+        with patch(
+            "src.kafka.kafka_producer.MessageProducer.produce_message",
+            return_value=True,
+        ):
+            db_application = service.create_application(application_data, "test_topic")
+
+        test_id = db_application.id
 
         # Make the request
         response = client.get(f"/applications/{test_id}/status")
