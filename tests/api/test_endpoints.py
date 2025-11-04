@@ -69,7 +69,7 @@ class TestApplicationEndpoints:
         }
 
         response = client.post("/applications/", json=invalid_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
         # Test with missing required field
         incomplete_data = {
@@ -81,7 +81,7 @@ class TestApplicationEndpoints:
         }
 
         response = client.post("/applications/", json=incomplete_data)
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_application_kafka_failure(self, client, db_session):
         # Test data
