@@ -16,15 +16,28 @@ class TestDecisionService:
         # Generate a random UUID that doesn't exist in the database
         application_id = uuid.uuid4()
 
-        # Call the function
-        result = DecisionService.process_decision(
-            application_id,
-            700,
-            {"monthly_income_inr": 50000, "loan_amount_inr": 200000},
-        )
+        mock_session = MagicMock()
+        mock_session.return_value = db_session
 
-        # Verify the result
-        assert result is False
+        mock_repository = MagicMock()
+        mock_repository.update_cibil_and_status.return_value = None
+
+        with (
+            patch("src.services.decision_service.SessionLocal", mock_session),
+            patch(
+                "src.services.decision_service.ApplicationRepository",
+                return_value=mock_repository,
+            ),
+        ):
+            result = DecisionService.process_decision(
+                application_id,
+                700,
+                {"monthly_income_inr": 50000, "loan_amount_inr": 200000},
+            )
+
+            assert result is False
+
+            mock_repository.update_cibil_and_status.assert_called_once()
 
     def test_process_decision_rejected(self, db_session):
         """Test process_decision with low CIBIL score (rejected)"""

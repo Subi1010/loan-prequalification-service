@@ -21,20 +21,29 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def setup_database():
+    """Create tables once for the entire test session"""
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+
 @pytest.fixture(scope="function")
 def db_session():
-    # Create the database tables
-    Base.metadata.create_all(bind=engine)
+    """
+    Create a new database session with a rollback at the end of each test.
+    """
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
 
-    # Create a db session
-    db = TestingSessionLocal()
     try:
-        yield db
+        yield session
     finally:
-        db.close()
-
-    # Drop all tables after the test
-    Base.metadata.drop_all(bind=engine)
+        session.close()
+        transaction.rollback()
+        connection.close()
 
 
 @pytest.fixture(scope="function")
@@ -48,8 +57,15 @@ def client(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
 
-    # Patch the engine in main.py to use our test engine and Create a test client using the FastAPI app
-    with patch("src.main.engine", engine), TestClient(app) as test_client:
+    # Patch engine and Kafka operations in lifespan
+    with (
+        patch("src.main.engine", engine),
+        patch("src.main.create_kafka_topic"),
+        patch("src.main.MessageProducer.initialize_producer"),
+        patch("src.main.MessageConsumer.initialize_consumer_thread"),
+        patch("src.main.MessageProducer.close_producer"),
+        TestClient(app) as test_client,
+    ):
         yield test_client
 
     # Reset the dependency override after the test
