@@ -156,6 +156,11 @@ This project uses Black and Ruff for code formatting and linting, enforced via p
 
 ### Manual Commands
 
+To activate pre-commit in local after installing it:
+```bash
+ pre-commit install
+```
+
 Format code with Black:
 ```bash
 black .
