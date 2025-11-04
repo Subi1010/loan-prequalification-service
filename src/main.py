@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 import src.models as models
-from src.api import endpoints
+from src.api import endpoints, health
 from src.core.config import settings
 from src.core.database import engine
 from src.core.logging_config import get_logger, setup_logging
@@ -64,3 +64,4 @@ app = FastAPI(
 
 # Include routers
 app.include_router(endpoints.router)
+app.include_router(health.router)
