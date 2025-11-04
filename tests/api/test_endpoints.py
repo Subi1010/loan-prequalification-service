@@ -30,10 +30,15 @@ class TestApplicationEndpoints:
         assert response_data["message"] == "Application created successfully"
 
         # Verify database entry using service layer
-        """ service = ApplicationService(db_session)
+        service = ApplicationService(db_session)
         application_status = service.get_application_status(
             uuid.UUID(response_data["application_id"])
-        ) """
+        )
+
+        assert application_status is not None
+        assert application_status.application_id == uuid.UUID(
+            response_data["application_id"]
+        )
 
         # Get the application from the database for detailed verification
         db_application = (
