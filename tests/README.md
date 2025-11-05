@@ -15,25 +15,25 @@ This directory contains tests for the Loan Prequalification Service application.
 To run all tests:
 
 ```bash
-pytest
+  pytest
 ```
 
 To run tests with coverage report:
 
 ```bash
-pytest --cov=src
+  pytest --cov=src
 ```
 
 To run a specific test file:
 
 ```bash
-pytest tests/api/test_application.py
+  pytest tests/api/test_application.py
 ```
 
 To run a specific test:
 
 ```bash
-pytest tests/api/test_application.py::TestApplicationEndpoints::test_create_application_success
+  pytest tests/api/test_application.py::TestApplicationEndpoints::test_create_application_success
 ```
 
 ## Test Database

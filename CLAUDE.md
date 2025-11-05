@@ -11,23 +11,23 @@ This is a FastAPI-based loan prequalification service that handles loan applicat
 ### Local Development
 Start the development server locally:
 ```bash
-uvicorn main:app --reload
+  uvicorn main:app --reload
 ```
 
 ### Docker Compose (Recommended)
 Run the entire stack (app, PostgreSQL, Kafka, Zookeeper):
 ```bash
-docker-compose up --build
+  docker-compose up --build
 ```
 
 To run in detached mode:
 ```bash
-docker-compose up -d --build
+  docker-compose up -d --build
 ```
 
 Stop all services:
 ```bash
-docker-compose down
+  docker-compose down
 ```
 
 The API will be available at http://localhost:8000. FastAPI automatically generates interactive API documentation at:
@@ -158,27 +158,27 @@ This project uses Black and Ruff for code formatting and linting, enforced via p
 
 To activate pre-commit in local after installing it:
 ```bash
- pre-commit install
+  pre-commit install
 ```
 
 Format code with Black:
 ```bash
-black .
+  black .
 ```
 
 Check for linting issues with Ruff:
 ```bash
-ruff check .
+  ruff check .
 ```
 
 Auto-fix linting issues with Ruff:
 ```bash
-ruff check --fix .
+  ruff check --fix .
 ```
 
 Run all pre-commit hooks manually:
 ```bash
-pre-commit run --all-files
+  pre-commit run --all-files
 ```
 
 ### Pre-commit Hooks
@@ -193,5 +193,5 @@ Pre-commit hooks are automatically installed and will run before each commit to:
 
 To bypass hooks (not recommended):
 ```bash
-git commit --no-verify
+  git commit --no-verify
 ```

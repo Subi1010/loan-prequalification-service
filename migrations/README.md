@@ -1,0 +1,40 @@
+# Generic single-database configuration.
+
+## Install Alembic:
+
+To install Alembic, run the following command:
+```bash
+  pip install alembic
+```
+
+
+## Initialize Alembic:
+
+Run the following command to initialize Alembic in your project:
+```bash
+    alembic init folder_name
+```
+
+## Configure Alembic:
+In the `env.py` file, ensure you import your models and set the database URL from your configuration settings.
+
+## Create Revisions:
+
+To create a new migration revision, run:
+```bash
+    alembic revision --autogenerate -m "your_message"
+```
+
+## Apply Revisions:
+
+To apply the migrations to your database, run:
+```bash
+    alembic upgrade "revision_identifier"
+```
+
+## Downgrade Revisions:
+
+To downgrade to a previous revision, run:
+```bash
+    alembic downgrade -1
+```
