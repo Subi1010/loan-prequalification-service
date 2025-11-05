@@ -93,7 +93,6 @@ class MessageProducer:
             )
 
             # Block until message is sent (synchronous for now)
-            # TODO: Implement async message sending with callbacks for better performance
             record_metadata = future.get(timeout=KAFKA_PRODUCER_TIMEOUT_SECONDS)
 
             MessageProducer.logger.info(

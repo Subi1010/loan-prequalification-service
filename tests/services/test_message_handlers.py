@@ -1,9 +1,9 @@
-from src.services.app_processor import TOPIC_HANDLERS
 from src.services.credit_service import handle_application_event
 from src.services.decision_service import handle_cibil_score_event
+from src.services.message_handlers import TOPIC_HANDLERS
 
 
-class TestAppProcessor:
+class TestMessageHandlers:
     def test_topic_handlers_mapping(self):
         # Verify the mapping for loan_applications_submitted
         assert "loan_applications_submitted" in TOPIC_HANDLERS

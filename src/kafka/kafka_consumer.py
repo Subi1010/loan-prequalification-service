@@ -9,7 +9,7 @@ from kafka import KafkaConsumer
 from kafka.errors import NoBrokersAvailable
 from src.core.constants import KAFKA_AUTO_COMMIT_INTERVAL_MS
 from src.core.logging_config import get_logger
-from src.services.app_processor import TOPIC_HANDLERS
+from src.services.message_handlers import TOPIC_HANDLERS
 
 
 class MessageConsumer:
