@@ -27,3 +27,4 @@ class Applications(Base):
     updated_at = Column(
         DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)
     )
+    phone_number = Column(String, nullable=True)
